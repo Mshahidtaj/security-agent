@@ -1,0 +1,23 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: egress-policy-validator
+webhooks:
+- name: validate-egress-policy.networking.company.com
+  clientConfig:
+    service:
+      name: egress-webhook
+      namespace: egress-control
+      path: "/validate"
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t  # Base64 encoded CA cert (placeholder)
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    resources: ["configmaps"]
+  namespaceSelector:
+    matchLabels:
+      egress-validation: "enabled"
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
