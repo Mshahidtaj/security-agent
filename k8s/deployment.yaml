@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eks-security-agent
+  namespace: security-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eks-security-agent
+  template:
+    metadata:
+      labels:
+        app: eks-security-agent
+    spec:
+      serviceAccountName: security-agent
+      containers:
+      - name: security-agent
+        image: eks-security-agent:latest
+        imagePullPolicy: Never
+        env:
+        - name: PYTHONPATH
+          value: "/app/src"
+        - name: RUN_MODE
+          value: "daemon"
+        - name: AUDIT_INTERVAL_SECONDS
+          value: "3600"  # 1 hour for testing, change to 21600 for 6 hours
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import kubernetes; print('OK')"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import kubernetes; print('OK')"
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: tmp
+        emptyDir: {}

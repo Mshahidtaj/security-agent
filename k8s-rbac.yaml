@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: security-agent
+  namespace: security-agent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: security-agent
+rules:
+# Core resources
+- apiGroups: [""]
+  resources: ["pods", "namespaces", "services", "configmaps", "secrets"]
+  verbs: ["get", "list"]
+# Apps resources
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+  verbs: ["get", "list"]
+# Networking resources
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies", "ingresses"]
+  verbs: ["get", "list"]
+# ArgoCD resources
+- apiGroups: ["argoproj.io"]
+  resources: ["applications", "appprojects"]
+  verbs: ["get", "list"]
+# Gatekeeper resources
+- apiGroups: ["templates.gatekeeper.sh"]
+  resources: ["constrainttemplates"]
+  verbs: ["get", "list"]
+- apiGroups: ["constraints.gatekeeper.sh"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+- apiGroups: ["config.gatekeeper.sh"]
+  resources: ["configs"]
+  verbs: ["get", "list"]
+# RBAC resources (for security analysis)
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  verbs: ["get", "list"]
+# Security resources
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["get", "list"]
+- apiGroups: ["security.istio.io"]
+  resources: ["authorizationpolicies", "peerauthentications"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: security-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: security-agent
+subjects:
+- kind: ServiceAccount
+  name: security-agent
+  namespace: security-agent

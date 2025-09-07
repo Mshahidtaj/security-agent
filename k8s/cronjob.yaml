@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: security-audit
+  namespace: security-agent
+spec:
+  schedule: "0 */6 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: security-agent
+          containers:
+          - name: security-agent
+            image: eks-security-agent:latest
+            imagePullPolicy: Never
+            env:
+            - name: PYTHONPATH
+              value: "/app/src"
+            - name: RUN_MODE
+              value: "oneshot"
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+            volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: tmp
+            emptyDir: {}
+          restartPolicy: OnFailure
